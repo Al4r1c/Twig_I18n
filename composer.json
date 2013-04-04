@@ -1,0 +1,21 @@
+{
+    "name": "twig/twigi18n",
+    "description": "Twig I18n extension.",
+    "keywords": ["i18n"],
+    "homepage": "https://github.com/Al4r1c/Twig_I18n",
+    "type": "library",
+    "license": "MIT",
+	"authors": [
+		{
+			"name": "KURDIJAKA Y.",
+			"email": "yann.kurdijaka@wanadoo.fr"
+		}
+	],
+    "require": {
+        "twig/twig": "1.*"
+    },
+    "autoload": {
+        "psr-0": { "Twig_I18nExtension_": "lib/" }
+    },
+    "minimum-stability": "dev"
+}
