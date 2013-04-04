@@ -47,7 +47,7 @@ class Twig_I18nExtension_Extension_I18n extends Twig_Extension
      */
     public function getLocale($use_global = false)
     {
-        return !empty($this->locale) ? $this->locale : setlocale(LC_MESSAGES, '0');
+        return !empty($this->locale) ? $this->locale : setlocale(LC_ALL, '0');
     }
 
     /**
