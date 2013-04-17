@@ -13,22 +13,74 @@
  * file that was distributed with this source code.
  */
 
-/**
- * Provides integration of the Translation component with Twig.
- */
+use Twig_I18nExtension_Gettext_TextDomain as TextDomain;
+
 class Twig_I18nExtension_Extension_I18n extends Twig_Extension
 {
-    protected $locale;
+    /**
+     * @var string
+     */
+    private $_locale;
+
+    /**
+     * @var Twig_I18nExtension_Symfony_MessageSelector
+     */
     private $selector;
 
     /**
-     * Constructor.
-     * @param string $localeThe locale
+     * @var Twig_I18nExtension_Gettext_I18nGettext
      */
-    public function __construct($locale = null)
+    private $_i18n;
+
+    /**
+     * @var TextDomain[]
+     */
+    private $_catalogues = array();
+
+    /**
+     * @var array
+     */
+    private $_unloadedRess;
+
+    /**
+     * @var string
+     */
+    private $_pathToFolder;
+
+    /**
+     * @param string $locale
+     * @param string $pathToFolder
+     * @param string $configLocales
+     */
+    public function __construct($locale, $pathToFolder, $configLocales)
     {
-        $this->locale = $locale;
+        $this->setLocale($locale);
+        $this->_unloadedRess = $configLocales;
+        $this->_pathToFolder = $pathToFolder;
         $this->selector = new Twig_I18nExtension_Symfony_MessageSelector();
+        $this->_i18n = new Twig_I18nExtension_Gettext_I18nGettext();
+    }
+
+    /**
+     * @param string $domain
+     * @return bool|TextDomain
+     */
+    public function getCatalogue($domain)
+    {
+        if (array_key_exists($domain, $this->_catalogues)) {
+            return $this->_catalogues[$domain];
+        }
+
+        if (array_key_exists($domain, $this->_unloadedRess)) {
+            $this->_catalogues[$domain] =
+                $this->_i18n->load(
+                    $this->_pathToFolder . '/' . $domain . '/LC_MESSAGES/' . $this->_unloadedRess[$domain] . '.mo'
+                );
+
+            return $this->_catalogues[$domain];
+        }
+
+        return false;
     }
 
     /**
@@ -37,30 +89,9 @@ class Twig_I18nExtension_Extension_I18n extends Twig_Extension
      */
     public function setLocale($locale = null)
     {
-        $this->locale = $locale;
-    }
+        setlocale(LC_ALL, $locale . '.utf-8');
 
-    /**
-     * Get the locale.
-     * @param bool $use_global Use PHP's global locale when no locale is set (default: false).
-     * @return string The locale
-     */
-    public function getLocale($use_global = false)
-    {
-        return !empty($this->locale) ? $this->locale : setlocale(LC_ALL, '0');
-    }
-
-    /**
-     * Returns a list of filters to add to the existing list.
-     * @return array An array of filters
-     */
-    public function getFilters()
-    {
-        return array(
-            'trans' => new Twig_Filter_Method($this, 'trans'),
-            'transplural' => new Twig_Filter_Method($this, 'transPlural'),
-            'transchoice' => new Twig_Filter_Method($this, 'transChoice'),
-        );
+        $this->_locale = $locale;
     }
 
     /**
@@ -94,38 +125,46 @@ class Twig_I18nExtension_Extension_I18n extends Twig_Extension
      */
     public function trans($message, array $arguments = array(), $domain = null)
     {
-        // Get the translated message from gettext
-        $message = !empty($domain) ? dgettext($domain, $message) : gettext($message);
+        if (is_null($domain)) {
+            $domain = $this->_locale;
+        }
 
-        // Fill in the arguments
-        $message = strtr($message, $arguments);
+        if (($i18nFile = $this->getCatalogue($domain)) !== false) {
+            if (($gettextObject = $i18nFile->getObjectBySingularKey($message)) !== false) {
+                if (is_array($value = $gettextObject->getValues())) {
+                    $message = $value[0];
+                } else {
+                    $message = $value;
+                }
+            }
+        }
 
-        return $message;
+        return strtr($message, $arguments);
     }
 
     /**
      * Translates the given plural message.
      * @param integer $number    The number to use to find the indice of the message
-     * @param string $message1   The singular message id
-     * @param string $message2   The plural message id
+     * @param string $message   The message id
      * @param array $arguments  An array of parameters for the message
      * @param string $domain     The domain for the message
      * @return string The translated string
      */
-    public function transPlural($number, $message1, $message2, array $arguments = array(), $domain = null)
+    public function transPlural($number, $message, array $arguments = array(), $domain = null)
     {
-        // Get the translated message from gettext
-        $message =
-            !empty($domain) ? dngettext($domain, $message1, $message2, abs($number)) :
-                ngettext($message1, $message2, abs($number));
+        if (is_null($domain)) {
+            $domain = $this->_locale;
+        }
 
-        // Add the specified number to the array of arguments
-        $arguments = array_merge($arguments, array('%count%' => $number));
+        if (($i18nFile = $this->getCatalogue($domain)) !== false) {
+            $idTrad = call_user_func($i18nFile->getPluralRule(), $number);
 
-        // Fill in the arguments
-        $message = strtr($message, $arguments);
+            if (($gettextObject = $i18nFile->getObjectBySingularKey($message)) !== false) {
+                $message = $gettextObject->getValues()[$idTrad];
+            }
+        }
 
-        return $message;
+        return strtr($message, array_merge($arguments, array('%count%' => $number)));
     }
 
     /**
@@ -136,21 +175,24 @@ class Twig_I18nExtension_Extension_I18n extends Twig_Extension
      * @param string $domain     The domain for the message
      * @return string The translated string
      */
-    public function transChoice($message, $number, array $arguments = array(), $domain = null)
+    public function transChoice($number, $message, array $arguments = array(), $domain = null)
     {
-        // Get the translated message from gettext
-        $message = !empty($domain) ? dgettext($domain, $message) : gettext($message);
+        $message = $this->selector->choose($message, (int)$number, $this->_locale);
 
-        // Pick the right text for the current count
-        $message = $this->selector->choose($message, (int)$number, $this->getLocale(true));
+        return $this->trans($message, array_merge($arguments, array('%count%' => $number)), $domain);
+    }
 
-        // Add the specified number to the array of arguments
-        $arguments = array_merge($arguments, array('%count%' => $number));
-
-        // Fill in the arguments
-        $message = strtr($message, $arguments);
-
-        return $message;
+    /**
+     * Returns a list of filters to add to the existing list.
+     * @return array An array of filters
+     */
+    public function getFilters()
+    {
+        return array(
+            'trans' => new Twig_Filter_Method($this, 'trans'),
+            'transplural' => new Twig_Filter_Method($this, 'transPlural'),
+            'transchoice' => new Twig_Filter_Method($this, 'transChoice'),
+        );
     }
 
     /**
