@@ -1,33 +1,29 @@
 <?php
 
 /*
- * This file is part of the the Twig extension Twi18n.
- * URL: http://github.com/jhogervorst/Twi18n
- * 
- * This file was part of the Symfony package.
- *
- * (c) Fabien Potencier <fabien@symfony.com>
- * (c) 2012 Jonathan Hogervorst
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
+* This file is part of the Symfony package.
+*
+* (c) Fabien Potencier <fabien@symfony.com>
+*
+* For the full copyright and license information, please view the LICENSE
+* file that was distributed with this source code.
+*/
 
 /**
  * Returns the plural rules for a given locale.
+ * @author Fabien Potencier <fabien@symfony.com>
  */
 class Twig_I18nExtension_Symfony_PluralizationRules
 {
-    // @codeCoverageIgnoreStart
-    static private $rules = array();
+    private static $rules = array();
 
     /**
      * Returns the plural position to use for the given locale and number.
-     * @param  integer $number The number
-     * @param  string $locale The locale
+     * @param integer $number The number
+     * @param string $locale The locale
      * @return integer The plural position
      */
-    static public function get($number, $locale)
+    public static function get($number, $locale)
     {
         if ("pt_BR" == $locale) {
             // temporary set a locale for brazilian
@@ -49,10 +45,10 @@ class Twig_I18nExtension_Symfony_PluralizationRules
         }
 
         /*
-         * The plural rules are derived from code of the Zend Framework (2010-09-25),
-         * which is subject to the new BSD license (http://framework.zend.com/license/new-bsd).
-         * Copyright (c) 2005-2010 Zend Technologies USA Inc. (http://www.zend.com)
-         */
+        * The plural rules are derived from code of the Zend Framework (2010-09-25),
+        * which is subject to the new BSD license (http://framework.zend.com/license/new-bsd).
+        * Copyright (c) 2005-2010 Zend Technologies USA Inc. (http://www.zend.com)
+        */
         switch ($locale) {
             case 'bo':
             case 'dz':
@@ -199,11 +195,12 @@ class Twig_I18nExtension_Symfony_PluralizationRules
 
     /**
      * Overrides the default plural rule for a given locale.
-     * @param string $rule   A PHP callable
+     * @param string $rule A PHP callable
      * @param string $locale The locale
      * @return null
+     * @throws \LogicException
      */
-    static public function set($rule, $locale)
+    public static function set($rule, $locale)
     {
         if ("pt_BR" == $locale) {
             // temporary set a locale for brazilian
@@ -215,11 +212,9 @@ class Twig_I18nExtension_Symfony_PluralizationRules
         }
 
         if (!is_callable($rule)) {
-            throw new Twig_Error_Runtime('The given rule can not be called');
+            throw new \LogicException('The given rule can not be called');
         }
 
         self::$rules[$locale] = $rule;
     }
-
-    // @codeCoverageIgnoreEnd
 }
