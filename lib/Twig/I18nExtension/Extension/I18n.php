@@ -144,14 +144,14 @@ class Twig_I18nExtension_Extension_I18n extends Twig_Extension
 
     /**
      * Translates the given plural message.
-     * @param integer $number    The number to use to find the indice of the message
      * @param string $singular   The singular message id
      * @param string $plural   The plural message id
+     * @param integer $number    The number to use to find the indice of the message
      * @param array $arguments  An array of parameters for the message
      * @param string $domain     The domain for the message
      * @return string The translated string
      */
-    public function transPlural($number, $singular, $plural, array $arguments = array(), $domain = null)
+    public function transPlural($singular, $plural, $number, array $arguments = array(), $domain = null)
     {
         if (is_null($domain)) {
             $domain = $this->_locale;
@@ -186,7 +186,7 @@ class Twig_I18nExtension_Extension_I18n extends Twig_Extension
      * @param string $domain     The domain for the message
      * @return string The translated string
      */
-    public function transChoice($number, $message, array $arguments = array(), $domain = null)
+    public function transChoice($message, $number, array $arguments = array(), $domain = null)
     {
         if (is_null($domain)) {
             $domain = $this->_locale;
@@ -198,7 +198,6 @@ class Twig_I18nExtension_Extension_I18n extends Twig_Extension
 
         return strtr($message, array_merge($arguments, array('%count%' => $number)));
     }
-
 
     /**
      * Returns a list of filters to add to the existing list.

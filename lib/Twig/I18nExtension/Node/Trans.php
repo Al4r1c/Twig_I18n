@@ -47,27 +47,22 @@ class Twig_I18nExtension_Node_Trans extends Twig_Node
         $method = $this->getNode('plural') ? 'transPlural' : ($this->getNode('count') ? 'transChoice' : 'trans');
 
         $compiler
-            ->write('echo $this->env->getExtension(\'translator\')->' . $method . '(');
+            ->write('echo $this->env->getExtension(\'translator\')->' . $method . '(')
+            ->subcompile($msg)
+            ->raw(', ');
 
-        if ($method == 'trans') {
-            $compiler
-                ->subcompile($msg)
-                ->raw(', ');
-        } elseif ($method == 'transPlural') {
-            list($plural) = $this->compileString($this->getNode('plural'), $defaults);
+
+        if ($method == 'transChoice' || $method == 'transPlural') {
+            if ($method == 'transPlural') {
+                list($plural) = $this->compileString($this->getNode('plural'), $defaults);
+
+                $compiler
+                    ->subcompile($plural)
+                    ->raw(', ');
+            }
 
             $compiler
                 ->subcompile($this->getNode('count'))
-                ->raw(', ')
-                ->subcompile($msg)
-                ->raw(', ')
-                ->subcompile($plural)
-                ->raw(', ');
-        } elseif ($method == 'transChoice') {
-            $compiler
-                ->subcompile($this->getNode('count'))
-                ->raw(', ')
-                ->subcompile($msg)
                 ->raw(', ');
         }
 
