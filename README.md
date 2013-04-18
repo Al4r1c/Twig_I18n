@@ -1,43 +1,56 @@
-Twig I18n Extension
+Twig I18n Extension v1.1
 ==========================
 
-Powerful Twig translation extension using PHP's gettext. This extension provides the functionality of Symfony's Translation component while using PHP's gettext functions as data source, without the need of using Symfony.
+Twig translation extension using [.MO files](http://www.gnu.org/software/gettext/manual/html_node/MO-Files.html). This extension provides the functionality of Symfony's Translation component while using .MO files as data source, without the need of using Symfony.
 
 This extension offers much more functionality than Twig's official [i18n extension](http://twig.sensiolabs.org/doc/extensions/i18n.html). It is possible to specify a custom domain, use better replacement techniques and use custom intervals depending on a numeric value.
+
+Also, instead of using PHP's gettext functions, it use binary parser inspired from [Zend Framework one](http://framework.zend.com/). Thus it resolve caching problems gettext have.
 
 Configuration
 -------------
 
-You must configure the gettext extension before rendering any internationalized template. Here is a simple configuration example from the [PHP documentation](http://www.php.net/manual/en/book.gettext.php):
+The application can be loaded with composer:
 
-	// Set language to French
-	putenv('LC_ALL=fr_FR');
-	setlocale(LC_ALL, 'fr_FR');
+	"repositories": [
+		{
+			"type": "vcs",
+			"url": "https://github.com/Al4r1c/Twig_I18n"
+		}
+	],
+	"require": {
+		"twig/twigi18n": "v1.1"
+	},
 
-	// Specify the location of the translation tables
-	bindtextdomain('myAppPhp', 'includes/locale');
-	bind_textdomain_codeset('myAppPhp', 'UTF-8');
+The Twi18n extension adds I18n support to Twig. It defines three tag, `trans`, `transplural` and `transchoice`. You need to register this extension before using one of the blocks:
 
-	// Choose domain
-	textdomain('myAppPhp');
+    $twig->addExtension(
+        new \Twig_I18nExtension_Extension_I18n(
+		    'cz',
+		    '/path/to/translation_root/',
+		    array('cz' => 'default-cz', 'fr' => 'default-fr')
+	    )
+    );
 
-The first step to use Twi18n is to register its autoloader:
+Parameters are:
+* The actual env locale, then used by default. Here 'cz'.
+* Path where translations files (.mo) are stored. The folders then must have gettext like structure. (/path/'locale'/LC_MESSAGES/fileName.mo)
+* Array with configuration or available locales.
 
-    require_once 'path/to/lib/Twi18n/Autoloader.php';
-    Twi18n_Autoloader::register();
 
-It's best to do this after registering Twig's autoloader.
+In the previous example, we suppose that we got two files:
+* /path/to/translation_root/cz/LC_MESSAGES/default-cz.mo
+* /path/to/translation_root/fr/LC_MESSAGES/default-fr.mo
 
-The Twi18n extension adds gettext support to Twig. It defines three tag, `trans`, `transplural` and `transchoice`. You need to register this extension before using one of the blocks:
+And that, by default Twig will use the cz one.
 
-    $twig->addExtension(new Twi18n_Twig_Extension_Twi18n());
+Files must be valid .MO files or it won't work properly. ([More informations](http://www.gnu.org/software/gettext/manual/html_node/MO-Files.html)).
 
-Now you should be ready to go.
 
 Usage
 -----
 
-Twi18n provides specialized Twig tags (`trans`, `transplural` and `transchoice`) to help with message translation of static blocks of text:
+Twig_I18n provides specialized Twig tags (`trans`, `transplural` and `transchoice`) to help with message translation of static blocks of text:
 
     {% trans %}Hello %name%{% endtrans %}
 
@@ -51,46 +64,48 @@ Twi18n provides specialized Twig tags (`trans`, `transplural` and `transchoice`)
         {0} There are no apples|{1} There is one apple|]1,Inf] There are %count% apples
     {% endtranschoice %}
 
-The `transplural` and `transchoice` tags automatically get the `%count%` variable from the current context and pass it to the translator. If you use the `transplural` tag to specify a message for a singular and plural number, PHP's gettext functions will choose which message to use. If you use the `transchoice` tag, this extension will choose which message is used. This mechanism only works when you use a placeholder following the `%var%` pattern.
+The `transplural` and `transchoice` tags automatically get the `%count%` variable from the current context and pass it to the translator. If you use the `transplural` tag to specify a message for a singular and plural number, the extension will choose which message to use. If you use the `transchoice` tag, this extension will choose which message is used. This mechanism only works when you use a placeholder following the `%var%` pattern.
 
 You can also specify the message domain and pass some additional variables:
 
-    {% trans with {'%name%': 'Jonathan'} from 'my_app_domain' %}Hello %name%{% endtrans %}
+    {% trans with {'%name%': 'Alice'} from 'my_app_domain' %}Hello %name%{% endtrans %}
 
-    {% transplural with {'%name%': 'Jonathan'} from 'my_app_domain' %}
+    {% transplural with {'%name%': 'Alice'} from 'my_app_domain' %}
         There is one apple, %name%
     {% plural count %}
         There are %count% apples, %name%
     {% endtransplural %}
 
-    {% transchoice count with {'%name%': 'Jonathan'} from 'my_app_domain' %}
+    {% transchoice count with {'%name%': 'Alice'} from 'my_app_domain' %}
         {0} There are no apples, %name%|{1} There is one apple, %name%|]1,Inf] There are %count% apples, %name%
     {% endtranschoice %}
 
-The trans and transchoice filters can be used to translate variable texts and complex expressions:
+Filters trans, transplural and transchoice can be used to translate variable texts and complex expressions:
+
+	{% set message = 'Hello %name%!' %}
+
+	{% set message_plural = 'Hello %name%, total: %count%!' %}
 
     {{ message|trans }}
 
-    {{ count|transplural(message_plural, message_singular) }}
+    {{ message|transplural(message_plural, count) }}
 
     {{ message|transchoice(count) }}
 
-    {{ message|trans({'%name%': 'Jonathan'}, 'my_app_domain') }}
+    {{ 'There is one apple, %name%'|trans({'%name%': 'Bob'}, 'my_app_domain') }}
 
-    {{ count|transplural(message_plural, message_singular, {'%name%': 'Jonathan'}, 'my_app_domain') }}
+    {{ message|transplural(message_plural, count, {'%name%': 'Bob'}, 'my_app_domain') }}
 
-    {{ message|transchoice(count, {'%name%': 'Jonathan'}, 'my_app_domain') }}
+    {{ message|transchoice(count, {'%name%': 'Bob'}, 'my_app_domain') }}
 
 Learn more
 ----------
 
-Take a look at Symfony's documentation to read more about the [Twig syntaxis](http://symfony.com/doc/current/book/translation.html#twig-templates). Note that it is not possible to specify a custom locale using the `into` operator.
-
-Take a look at the PHP documentation for more information about [gettext](http://www.php.net/manual/en/book.gettext.php).
+Take a look at Symfony's documentation to read more about the [Twig syntaxis](http://symfony.com/doc/current/book/translation.html#twig-templates).
 
 License
 -------
 
-Twi18n is a modified version of parts of the Symfony package and it's included Twig library. For the full copyright and license information, please view the `LICENSE` file that is distributed with the source code.
+Twig_I18n is a modified version of parts of the Symfony package and it's included Twig library. It has also part of [Twi18n](https://github.com/jhogervorst/Twi18n).
 
-Twi18n documentation is licensed under a Creative Commons Attribution-Share Alike 3.0 Unported [License](http://creativecommons.org/licenses/by-sa/3.0/) and is based on the [Symfony documentation](http://symfony.com/doc/current/book/translation.html#twig-templates), [Twig documentation](http://twig.sensiolabs.org/doc/extensions/i18n.html) and [PHP documentation](http://www.php.net/manual/en/book.gettext.php).
+For the full copyright and license information, please view the `LICENSE` file that is distributed with the source code.
