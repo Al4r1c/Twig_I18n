@@ -60,6 +60,8 @@ class Twig_I18nExtension_Node_Trans extends Twig_Node
                 ->subcompile($this->getNode('count'))
                 ->raw(', ')
                 ->subcompile($msg)
+                ->raw(', ')
+                ->subcompile($plural)
                 ->raw(', ');
         } elseif ($method == 'transChoice') {
             $compiler

@@ -145,22 +145,33 @@ class Twig_I18nExtension_Extension_I18n extends Twig_Extension
     /**
      * Translates the given plural message.
      * @param integer $number    The number to use to find the indice of the message
-     * @param string $message   The message id
+     * @param string $singular   The singular message id
+     * @param string $plural   The plural message id
      * @param array $arguments  An array of parameters for the message
      * @param string $domain     The domain for the message
      * @return string The translated string
      */
-    public function transPlural($number, $message, array $arguments = array(), $domain = null)
+    public function transPlural($number, $singular, $plural, array $arguments = array(), $domain = null)
     {
         if (is_null($domain)) {
             $domain = $this->_locale;
         }
 
+        $number = abs($number);
+
         if (($i18nFile = $this->getCatalogue($domain)) !== false) {
             $idTrad = call_user_func($i18nFile->getPluralRule(), $number);
 
-            if (($gettextObject = $i18nFile->getObjectBySingularKey($message)) !== false) {
+            if (($gettextObject = $i18nFile->getObjectBySingularKey($singular)) !== false) {
                 $message = $gettextObject->getValues()[$idTrad];
+            }
+        }
+
+        if (!isset($message)) {
+            if ($number > 1) {
+                $message = $plural;
+            } else {
+                $message = $singular;
             }
         }
 
@@ -177,10 +188,17 @@ class Twig_I18nExtension_Extension_I18n extends Twig_Extension
      */
     public function transChoice($number, $message, array $arguments = array(), $domain = null)
     {
-        $message = $this->selector->choose($message, (int)$number, $this->_locale);
+        if (is_null($domain)) {
+            $domain = $this->_locale;
+        }
 
-        return $this->trans($message, array_merge($arguments, array('%count%' => $number)), $domain);
+        $message = $this->trans($message, array(), $domain);
+
+        $message = $this->selector->choose($message, (int)$number, $domain);
+
+        return strtr($message, array_merge($arguments, array('%count%' => $number)));
     }
+
 
     /**
      * Returns a list of filters to add to the existing list.
