@@ -33,16 +33,14 @@ The Twi18n extension adds I18n support to Twig. It defines three tag, `trans`, `
     );
 
 Parameters are:
-* The actual env locale, then used by default. Here 'cz'.
-* Path where translations files (.mo) are stored. The folders then must have gettext like structure. (/path/'locale'/LC_MESSAGES/fileName.mo)
+* The actual env locale, then used by default. Here it will be `cz`.
+* Path where translations files (.mo) are stored. The folders then must have gettext like structure. (/path/to/translation_root/'locale'/LC_MESSAGES/'fileName'.mo)
 * Array with configuration or available locales.
 
 
 In the previous example, we suppose that we got two files:
 * /path/to/translation_root/cz/LC_MESSAGES/default-cz.mo
 * /path/to/translation_root/fr/LC_MESSAGES/default-fr.mo
-
-And that, by default Twig will use the cz one.
 
 Files must be valid .MO files or it won't work properly. ([More informations](http://www.gnu.org/software/gettext/manual/html_node/MO-Files.html)).
 
@@ -80,7 +78,7 @@ You can also specify the message domain and pass some additional variables:
         {0} There are no apples, %name%|{1} There is one apple, %name%|]1,Inf] There are %count% apples, %name%
     {% endtranschoice %}
 
-Filters trans, transplural and transchoice can be used to translate variable texts and complex expressions:
+Filters `trans`, `transplural` and `transchoice`     can be used to translate variable texts and complex expressions:
 
 	{% set message = 'Hello %name%!' %}
 
